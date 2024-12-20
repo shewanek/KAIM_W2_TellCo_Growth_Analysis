@@ -13,3 +13,4 @@ data/
 
 # Ignore images folder
 images/
+.venv/
