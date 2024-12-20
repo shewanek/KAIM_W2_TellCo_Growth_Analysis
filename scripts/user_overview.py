@@ -164,3 +164,100 @@ class UserOverview:
             print(f"- Top model market share: {market_share.iloc[0]:.1f}%")
         
 
+    def aggregate_user_behavior(self):
+        """Aggregate user behavior metrics per user"""
+        # Convert bytes to megabytes for readability
+        bytes_to_mb = 1 / (1024 * 1024)
+        duration_to_min = 1 / 60
+        
+        self.user_metrics = self.df.groupby('MSISDN/Number').agg({
+            'Bearer Id': 'count',  # number of xDR sessions
+            'Dur. (s)': 'sum',  # total session duration
+            'Total DL (Bytes)': 'sum',
+            'Total UL (Bytes)': 'sum',
+            'Social Media DL (Bytes)': 'sum',
+            'Social Media UL (Bytes)': 'sum',
+            'Google DL (Bytes)': 'sum',
+            'Google UL (Bytes)': 'sum', 
+            'Email DL (Bytes)': 'sum',
+            'Email UL (Bytes)': 'sum',
+            'Youtube DL (Bytes)': 'sum',
+            'Youtube UL (Bytes)': 'sum',
+            'Netflix DL (Bytes)': 'sum',
+            'Netflix UL (Bytes)': 'sum',
+            'Gaming DL (Bytes)': 'sum',
+            'Gaming UL (Bytes)': 'sum',
+            'Other DL (Bytes)': 'sum',
+            'Other UL (Bytes)': 'sum'
+        }).reset_index()
+
+        # Convert duration to minutes
+        self.user_metrics['Dur. (min)'] = self.user_metrics['Dur. (s)'] * duration_to_min
+        
+        # Convert bytes to MB
+        byte_cols = [col for col in self.user_metrics.columns if 'Bytes' in col]
+        for col in byte_cols:
+            new_col = col.replace('Bytes', 'MB')
+            self.user_metrics[new_col] = self.user_metrics[col] * bytes_to_mb
+            self.user_metrics.drop(col, axis=1, inplace=True)
+        
+        # Calculate total data volume per application
+        apps = ['Social Media', 'Google', 'Email', 'Youtube', 'Netflix', 'Gaming', 'Other']
+        for app in apps:
+            self.user_metrics[f'{app} Total (MB)'] = (
+                self.user_metrics[f'{app} DL (MB)'] + 
+                self.user_metrics[f'{app} UL (MB)']
+            )
+        
+        # Visualize app usage distribution
+        plt.figure(figsize=(12, 6))
+        app_totals = [self.user_metrics[f'{app} Total (MB)'].sum() for app in apps]
+        plt.bar(apps, app_totals)
+        plt.title('Total Data Usage by Application')
+        plt.xlabel('Application')
+        plt.ylabel('Total Data Usage (MB)')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        
+        # Print insights
+        print("\nApplication Usage Analysis:")
+        total_data = sum(app_totals)
+        for app, usage in zip(apps, app_totals):
+            print(f"- {app}: {usage/total_data*100:.1f}% of total data usage")
+            
+        return self.user_metrics
+
+    def get_user_deciles(self):
+        """Segment users into deciles based on total duration and visualize"""
+        if self.user_metrics is None:
+            self.aggregate_user_behavior()
+            
+        self.user_metrics['Duration Decile'] = pd.qcut(
+            self.user_metrics['Dur. (min)'], 
+            q=10, 
+            labels=['D1','D2','D3','D4','D5','D6','D7','D8','D9','D10']
+        )
+        
+        # Compute total data per decile
+        decile_stats = self.user_metrics.groupby('Duration Decile').agg({
+            'Total DL (MB)': 'sum',
+            'Total UL (MB)': 'sum',
+            'Dur. (min)': ['mean', 'median', 'count']
+        })
+        
+        # Visualize decile distribution
+        plt.figure(figsize=(12, 6))
+        decile_stats[('Dur. (min)', 'mean')].plot(kind='bar')
+        plt.title('Average Duration by User Decile')
+        plt.xlabel('Decile')
+        plt.ylabel('Average Duration (minutes)')
+        plt.tight_layout()
+        
+        # Print insights
+        print("\nUser Decile Analysis:")
+        print(f"- Top 10% of users (D10) average {decile_stats[('Dur. (min)', 'mean')]['D10']:.1f} minutes")
+        print(f"- Bottom 10% of users (D1) average {decile_stats[('Dur. (min)', 'mean')]['D1']:.1f} minutes")
+        
+        return decile_stats
+
+    
