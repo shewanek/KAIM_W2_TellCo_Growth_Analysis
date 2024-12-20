@@ -84,4 +84,83 @@ class UserOverview:
 
         return self.df
 
-    
+    def get_top_handsets(self, n=10):
+        """Get top n handsets used by customers with market share percentage and visualize"""
+        handset_counts = self.df['Handset Type'].value_counts()
+        top_handsets = handset_counts.head(n)
+        market_share = (top_handsets / len(self.df)) * 100
+        
+        # Create bar plot
+        plt.figure(figsize=(12, 6))
+        top_handsets.plot(kind='bar')
+        plt.title('Top 10 Handset Types')
+        plt.xlabel('Handset Type')
+        plt.ylabel('Count')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        
+        # Print insights
+        print("\nHandset Type Analysis:")
+        print(f"- Most popular handset is {top_handsets.index[0]} with {top_handsets.iloc[0]} users")
+        print(f"- Top 3 handsets account for {market_share[:3].sum():.1f}% of all users")
+        
+        return pd.DataFrame({
+            'Count': top_handsets,
+            'Market Share %': market_share.round(2)
+        })
+
+    def get_top_manufacturers(self, n=3):
+        """Get top n handset manufacturers with market share percentage and visualize"""
+        manufacturer_counts = self.df['Handset Manufacturer'].value_counts()
+        top_manufacturers = manufacturer_counts.head(n)
+        market_share = (top_manufacturers / len(self.df)) * 100
+        
+        # Create pie chart
+        plt.figure(figsize=(10, 8))
+        plt.pie(market_share, labels=top_manufacturers.index, autopct='%1.1f%%')
+        plt.title('Market Share of Top Handset Manufacturers')
+        plt.axis('equal')
+        
+        # Print insights
+        print("\nManufacturer Analysis:")
+        print(f"- Market leader is {top_manufacturers.index[0]} with {market_share.iloc[0]:.1f}% market share")
+        print(f"- Top 3 manufacturers control {market_share.sum():.1f}% of the market")
+        
+        return pd.DataFrame({
+            'Count': top_manufacturers,
+            'Market Share %': market_share.round(2)
+        })
+
+    def get_top_handsets_per_manufacturer(self, n_manufacturers=3, n_handsets=5):
+        """Get top n handsets for each of the top k manufacturers with market share and visualize"""
+        # Get top manufacturers without plotting
+        manufacturer_counts = self.df['Handset Manufacturer'].value_counts()
+        top_manufacturers = manufacturer_counts.head(n_manufacturers).index
+        results = {}
+        
+        for manufacturer in top_manufacturers:
+            mask = self.df['Handset Manufacturer'] == manufacturer
+            manufacturer_df = self.df[mask]
+            handset_counts = manufacturer_df['Handset Type'].value_counts().head(n_handsets)
+            market_share = (handset_counts / len(manufacturer_df)) * 100
+            
+            # Create individual plot for each manufacturer
+            plt.figure(figsize=(12, 6))
+            handset_counts.plot(kind='bar')
+            plt.title(f'Top {n_handsets} Handsets for {manufacturer}')
+            plt.xlabel('Handset Type')
+            plt.ylabel('Count')
+            plt.xticks(rotation=45)
+            plt.tight_layout()
+            
+            results[manufacturer] = pd.DataFrame({
+                'Count': handset_counts,
+                'Market Share %': market_share.round(2)
+            })
+            
+            # Print insights
+            print(f"\n{manufacturer} Analysis:")
+            print(f"- Most popular model: {handset_counts.index[0]}")
+            print(f"- Top model market share: {market_share.iloc[0]:.1f}%")
+        
+
