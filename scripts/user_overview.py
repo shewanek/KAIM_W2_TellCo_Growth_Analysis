@@ -260,4 +260,96 @@ class UserOverview:
         
         return decile_stats
 
+    def compute_basic_metrics(self):
+        """Compute and visualize basic statistical metrics for numeric columns"""
+        if self.user_metrics is None:
+            self.aggregate_user_behavior()
+            
+        numeric_cols = self.user_metrics.select_dtypes(include=['float64', 'int64']).columns
+        stats = self.user_metrics[numeric_cols].describe()
+        
+        # Create box plots for key metrics
+        plt.figure(figsize=(12, 6))
+        self.user_metrics.boxplot(column=['Total DL (MB)', 'Total UL (MB)', 'Dur. (min)'])
+        plt.title('Distribution of Key Metrics')
+        plt.xticks(rotation=45)
+        plt.ylabel('Value')
+        plt.tight_layout()
+        
+        return stats
+
+    def compute_correlation_matrix(self):
+        """Compute and visualize correlation matrix for application data"""
+        if self.user_metrics is None:
+            self.aggregate_user_behavior()
+            
+        apps = ['Social Media Total (MB)', 'Google Total (MB)', 
+                'Email Total (MB)', 'Youtube Total (MB)',
+                'Netflix Total (MB)', 'Gaming Total (MB)', 
+                'Other Total (MB)']
+        
+        corr_matrix = self.user_metrics[apps].corr()
+        
+        # Create heatmap
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', center=0)
+        plt.title('Correlation Matrix of Application Usage')
+        plt.tight_layout()
+        
+        # Print insights
+        print("\nCorrelation Analysis:")
+        high_corr = [(i,j,corr_matrix.loc[i,j]) 
+                    for i in apps 
+                    for j in apps 
+                    if i<j and abs(corr_matrix.loc[i,j]) > 0.5]
+        for i,j,v in high_corr:
+            print(f"- Strong correlation ({v:.2f}) between {i.split()[0]} and {j.split()[0]}")
+        
+        return corr_matrix
+
+    def perform_pca(self, n_components=2):
+        """Perform PCA on application data and visualize results"""
+        if self.user_metrics is None:
+            self.aggregate_user_behavior()
+            
+        apps = ['Social Media Total (MB)', 'Google Total (MB)', 
+                'Email Total (MB)', 'Youtube Total (MB)',
+                'Netflix Total (MB)', 'Gaming Total (MB)', 
+                'Other Total (MB)']
+        
+        # Standardize the features
+        scaler = StandardScaler()
+        scaled_data = scaler.fit_transform(self.user_metrics[apps])
+        
+        # Perform PCA
+        pca = PCA(n_components=n_components)
+        pca_result = pca.fit_transform(scaled_data)
+        
+        # Create component interpretation
+        components_df = pd.DataFrame(
+            pca.components_,
+            columns=apps,
+            index=[f'PC{i+1}' for i in range(n_components)]
+        )
+        
+        # Visualize explained variance
+        plt.figure(figsize=(10, 6))
+        plt.plot(range(1, n_components+1), pca.explained_variance_ratio_, 'bo-')
+        plt.title('Explained Variance Ratio by Principal Component')
+        plt.xlabel('Principal Component')
+        plt.ylabel('Explained Variance Ratio')
+        plt.tight_layout()
+        
+        # Print insights
+        print("\nPCA Analysis:")
+        print(f"- First component explains {pca.explained_variance_ratio_[0]*100:.1f}% of variance")
+        print(f"- Total explained variance: {sum(pca.explained_variance_ratio_)*100:.1f}%")
+        
+        return {
+            'transformed_data': pca_result,
+            'explained_variance_ratio': pca.explained_variance_ratio_,
+            'components': components_df,
+            'cumulative_variance': pca.explained_variance_ratio_.cumsum()
+        }
+
     
