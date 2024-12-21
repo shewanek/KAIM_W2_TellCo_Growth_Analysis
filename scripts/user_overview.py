@@ -353,10 +353,7 @@ class UserOverview:
         }
 
     def save_data(self, filename='clean_proccessed_data.csv'):
-        """Save the user metrics DataFrame to a CSV file in the data folder"""
-        if self.user_metrics is None:
-            self.aggregate_user_behavior()
         
         filepath = f'../data/{filename}'
-        self.user_metrics.to_csv(filepath, index=False)
+        self.df.to_csv(filepath, index=False)
         print(f"Data saved to {filepath}")
