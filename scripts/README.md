@@ -161,3 +161,19 @@ analysis.plot_top_3_applications(app_traffic)
 | `k_means_clustering()`                | Perform user segmentation with K-means clustering.          |
 | `aggregate_traffic_per_application()` | Aggregate and analyze traffic data for various applications.|
 | `plot_top_3_applications()`           | Visualize traffic for the top 3 most-used applications.     |
+# Satisfaction Analysis
+
+A Python script for analyzing customer satisfaction data and generating insights.
+
+## Overview
+
+This script performs sentiment analysis on customer feedback data to measure satisfaction levels and identify trends. It processes text data to extract sentiment scores and provides visualizations of the results.
+
+## Features
+
+- Sentiment analysis of customer feedback
+- Data preprocessing and cleaning
+- Statistical analysis of satisfaction scores
+- Visualization of trends and patterns
+- Export of results to various formats
+
